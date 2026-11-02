@@ -1,101 +1,55 @@
-# Assignment: Build a Secure API Endpoint
+# WD2200 Week 4.1: Build a Secure API Endpoint
 
-## Introduction
+## Run locally
 
-In this assignment, we will build a **secure API endpoint** using **Express.js**, **JWT-based authentication**, **role-based access control (RBAC)**, and **observability** features such as structured logging and centralized error handling. By the end, you’ll have a functional backend service that demonstrates secure authentication, role verification, request logging, and robust error management in a real-world scenario.
+Requires Node.js 20 or newer.
 
-----
+```sh
+cd code/start
+npm ci
+cp .env.example .env
+npm run build
+npm start
+```
 
-## **Working with Dev Container**
+Before running the app, fill in `.env`: set a random JWT_SECRET of at least 32 characters and an ADMIN_PASSWORD of at least 12 characters. Use ADMIN_EMAIL and ADMIN_PASSWORD for administrator login. Do not commit `.env`.
 
-To complete this assignment in a reliable and fully configured environment, please refer to the instructions in the file: **`README-devcontainer.md`**. This guide walks you through opening the assignment in **Visual Studio Code** using a **Dev Container**, which automatically installs all necessary Python libraries and tools. Following that setup ensures that the notebook runs smoothly without manual configuration or missing dependencies. Make sure to open the **main assignment folder** in VS Code and follow the steps outlined in the Dev Container guide before starting the notebook.
+## Endpoints
 
-----
+| Method | Path | Access |
+| --- | --- | --- |
+| GET | `/health` | Public |
+| POST | `/auth/register` | Public; creates a USER |
+| POST | `/auth/login` | Public; returns a one-hour JWT |
+| GET | `/profile` | Authenticated user |
+| GET | `/secure` | ADMIN only |
 
-## Starter Files
+Registration and login accept JSON containing `email` and `password`. Passwords must contain at least 12 characters and no more than 72 UTF-8 bytes. Send the login token as `Authorization: Bearer <token>`. A USER receives 403 from `/secure`; an ADMIN receives 200. Missing or invalid tokens receive 401.
 
-The initial code is available inside the `start` folder under the `code` folder associated with this activity.
+Users are stored in memory and reset when the server restarts. Passwords are hashed with bcrypt. The API uses Helmet, rate limits, express-validator, CORS, Morgan, Winston, and structured error responses. Logs are written to the console and `code/start/logs/`; credentials and tokens are excluded.
 
----
+## Verification
 
-## Requirements
+With the server running, use cURL or Postman:
 
-We'll be working with Express.js, JWT, bcrypt, and Winston for logging to develop our secure API. Here's what we need to accomplish:
+1. `GET /health` should return 200.
+2. `POST /auth/register` with `{ "email": "user@example.com", "password": "ExamplePassword123!" }` should return 201 and role USER.
+3. `POST /auth/login` with the same body should return 200 and a JWT.
+4. `GET /profile` with the USER Bearer token should return 200 and role USER.
+5. `GET /secure` without a token should return 401; with the USER token, 403.
+6. Log in using the ADMIN credentials in the local `.env`. `GET /secure` with that token should return 200.
+7. Register with an invalid email or short password: expect 400 with field messages. Confirm `request_error` and HTTP request entries in `logs/combined.log`.
 
-### Set Up the Development Environment
+Example public request: `curl -i http://localhost:3000/health`.
+For protected requests use `Authorization: Bearer <token>` locally. Keep passwords and tokens out of screenshots.
 
-We need to:  
 
-- Initialize a Node.js project using `npm` with TypeScript support.
-- Install necessary dependencies, including Express.js for routing, jsonwebtoken for authentication, bcryptjs for password hashing, morgan and Winston for logging, and dotenv for environment variable management.
-- Configure scripts for development and production environments.
+Run `npm test` from `code/start`. The local build and all 15 integration tests passed.
 
-### Build the Core Features
+Actual local screenshots are saved in `screenshots/`:
 
-We need to implement the following functionalities:  
+- `01-api-startup.png`: API startup.
+- `02-authentication-and-roles.png`: registration, login, USER/ADMIN access, and invalid input.
+- `03-request-and-error-logs.png`: HTTP request and error logs.
 
-**Authentication:**  
-
-- Implement JWT-based authentication with role verification.
-- Use bcryptjs to hash passwords securely.
-- Store user credentials in an in-memory store (`Map`).
-
-**Role-Based Access Control (RBAC):**  
-
-- Enforce role-based access on API endpoints (e.g., restrict `/secure` to `ADMIN` users).
-- Use middleware to verify roles during request processing.
-
-**Structured Logging:**  
-
-- Log all incoming requests and errors using Winston.
-- Ensure logs are stored both in the console and in files for traceability.
-
-**Centralized Error Handling:**  
-
-- Handle errors gracefully with centralized error-handling middleware.
-- Return consistent, structured error responses.
-
-**Observability Enhancements:**  
-
-- Add rate-limiting using `express-rate-limit` to prevent abuse.
-- Secure headers using `helmet`.
-
-**Validation:**  
-
-- Validate incoming requests using `express-validator`.
-- Ensure only valid data is processed.
-
-**Middleware and Security:**  
-
-- Use `cors` for cross-origin resource sharing.
-- Use `morgan` for logging HTTP requests.
-
-### Test the Application
-
-We need to verify:  
-
-- The API correctly authenticates users and enforces RBAC.
-- Structured logging captures all relevant request and error details.
-- Errors are handled gracefully with meaningful responses.
-- All tests pass successfully using tools like Postman or cURL.
-
----
-
-## Deliverables
-
-The deliverable of this assignment is a working backend service that meets all the requirements above. We need to submit:  
-
-- The public GitHub repository containing the source code.
-- Screenshots showing:
-  - The API running locally.
-  - Responses from API endpoints.
-  - Role-based access control in action.
-  - Logs captured during testing.
-- A brief README file explaining how to set up and run the app locally.
-- Simple documentation for the app's functionality and testing process.
-
----
-
-## Conclusion
-
-Building a Build a Secure API Endpoint using Express.js, JWT, and structured logging is an excellent way to practice creating secure and observable backend services. By completing this assignment, you've learned how to implement authentication, enforce role-based access control, optimize observability with logging, and structure a modular backend project. These skills form the foundation for developing more complex and efficient APIs in the future.
+The app uses an in-memory user store; users reset when the server restarts. Keep `.env`, dependencies, build output and runtime logs out of the repository.
